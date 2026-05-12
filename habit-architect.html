@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habit Architect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --paper: #faf7f2;
+    --cream: #f0ebe0;
+    --sage: #4a7c59;
+    --sage-light: #d6e8da;
+    --amber: #c8860a;
+    --amber-light: #fef3d0;
+    --plum: #6b3f7a;
+    --plum-light: #ede0f5;
+    --muted: #8a8278;
+    --border: #ddd8cc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    background: var(--paper);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; min-height: 100vh; animation: slideUp 0.35s cubic-bezier(.4,0,.2,1); }
+  .screen.active { display: flex; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    padding: 52px 24px 20px;
+    background: var(--paper);
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .app-header .label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .app-header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .app-header .date {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .header-actions {
+    position: absolute;
+    top: 52px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--cream);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background 0.15s;
+  }
+  .icon-btn:hover { background: var(--border); }
+
+  /* ── HABIT CARDS ── */
+  .habits-list { flex: 1; padding: 20px 20px 100px; overflow-y: auto; }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    gap: 12px;
+  }
+  .empty-icon { font-size: 48px; opacity: 0.35; }
+  .empty-state p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+  .habit-card {
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: white;
+    margin-bottom: 12px;
+    padding: 18px;
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+  .habit-card.done {
+    background: var(--sage-light);
+    border-color: var(--sage);
+  }
+
+  .habit-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+
+  .habit-name {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .habit-card.done .habit-name { text-decoration: line-through; color: var(--sage); }
+
+  .habit-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .check-btn {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--cream);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    color: var(--muted);
+  }
+  .habit-card.done .check-btn {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: white;
+    transform: scale(1.08);
+  }
+
+  .two-min-tip {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--amber-light);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--amber);
+    display: flex; align-items: flex-start; gap: 6px;
+    line-height: 1.4;
+  }
+  .two-min-tip strong { font-weight: 600; }
+
+  /* ── FAB ── */
+  .fab-container {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px 20px 24px;
+    background: linear-gradient(transparent, var(--paper) 40%);
+  }
+
+  .fab {
+    width: 100%;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 8px 24px rgba(26,23,20,0.28);
+    letter-spacing: 0.03em;
+  }
+  .fab:active { transform: scale(0.97); }
+
+  /* ── BACK BUTTON ── */
+  .back-btn {
+    display: flex; align-items: center; gap: 4px;
+    background: none; border: none;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; padding: 0;
+    margin-bottom: 20px;
+  }
+
+  /* ── WIZARD ── */
+  .wizard-container { flex: 1; padding: 28px 24px 24px; display: flex; flex-direction: column; }
+
+  .wizard-header { padding: 52px 24px 0; }
+
+  .progress-bar {
+    display: flex; gap: 6px; margin-bottom: 32px; margin-top: 16px;
+  }
+  .progress-segment {
+    flex: 1; height: 4px; border-radius: 99px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-segment.filled { background: var(--sage); }
+
+  .step-num {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* ── EXPLAINER CARD ── */
+  .explainer {
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .explainer::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .explainer.green { background: var(--sage-light); }
+  .explainer.green::before { background: var(--sage); }
+  .explainer.amber { background: var(--amber-light); }
+  .explainer.amber::before { background: var(--amber); }
+  .explainer.plum { background: var(--plum-light); }
+  .explainer.plum::before { background: var(--plum); }
+
+  .explainer-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .explainer-body {
+    font-size: 13px;
+    color: #4a4540;
+    line-height: 1.65;
+  }
+  .explainer-body strong { font-weight: 600; }
+
+  .explainer-example {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .explainer-tip {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: inherit;
+  }
+  .explainer.green .explainer-tip { color: var(--sage); }
+  .explainer.amber .explainer-tip { color: var(--amber); }
+  .explainer.plum  .explainer-tip { color: var(--plum); }
+
+  /* ── FORM FIELDS ── */
+  .field-group { margin-bottom: 16px; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .field-input, .field-textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus, .field-textarea:focus { border-color: var(--sage); }
+  .field-textarea { resize: none; min-height: 90px; line-height: 1.55; }
+
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field-group { flex: 1; }
+
+  .template-box {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: var(--cream);
+  }
+  .template-line {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 2;
+    display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  }
+  .template-key {
+    font-weight: 600;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* ── WIZARD FOOTER ── */
+  .wizard-footer { padding: 16px 24px 28px; display: flex; gap: 10px; }
+
+  .btn-back {
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-back:hover { background: var(--border); }
+
+  .btn-next {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: var(--ink);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: transform 0.15s;
+  }
+  .btn-next:active { transform: scale(0.97); }
+  .btn-next.sage { background: var(--sage); }
+
+  /* ── HISTORY ── */
+  .history-container { flex: 1; padding: 24px 20px 40px; overflow-y: auto; }
+
+  .history-header {
+    padding: 52px 24px 16px;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .habit-history-block {
+    margin-bottom: 28px;
+    background: white;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    padding: 18px;
+  }
+
+  .habit-history-name {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+
+  .month-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 12px;
+  }
+  .month-label:first-of-type { margin-top: 0; }
+
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--cream);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .day-cell.done {
+    background: var(--sage);
+    color: white;
+    border-color: var(--sage);
+  }
+  .day-cell.today {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .day-cell.today.done {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: white;
+  }
+
+  .streak-info {
+    display: flex; gap: 12px; margin-top: 12px;
+  }
+  .streak-pill {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .streak-pill.fire { background: var(--amber-light); color: var(--amber); }
+  .streak-pill.check { background: var(--sage-light); color: var(--sage); }
+
+  /* ── ONBOARDING ── */
+  .onboard-screen {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 0;
+    background: var(--paper);
+  }
+
+  .onboard-hero {
+    background: var(--ink);
+    padding: 60px 28px 40px;
+    color: var(--paper);
+  }
+  .onboard-hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 99px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: rgba(255,255,255,0.6);
+  }
+  .onboard-hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 1.0;
+    margin-bottom: 16px;
+  }
+  .onboard-hero h1 em {
+    font-style: italic;
+    color: #a8d5b5;
+  }
+  .onboard-hero p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .onboard-steps {
+    flex: 1;
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+
+  .onboard-step {
+    display: flex; gap: 16px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+  }
+  .step-icon-box {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .step-icon-box.g { background: var(--sage-light); }
+  .step-icon-box.a { background: var(--amber-light); }
+  .step-icon-box.p { background: var(--plum-light); }
+
+  .step-text h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .step-text p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .onboard-footer {
+    padding: 16px 24px 32px;
+  }
+
+  /* ── DELETE HABIT ── */
+  .habit-actions {
+    display: flex; gap: 6px; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .delete-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #f0d0d0;
+    background: #fff5f5;
+    color: #c0392b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══════════ ONBOARDING ══════════ -->
+  <div class="screen active" id="screen-onboard">
+    <div class="onboard-screen">
+      <div class="onboard-hero">
+        <div class="badge">Basado en «Hábitos Atómicos»</div>
+        <h1>Diseña tus <em>hábitos</em> con ciencia</h1>
+        <p>Esta app te guía paso a paso para crear hábitos que realmente duran, usando las mejores estrategias del libro <em>Hábitos Atómicos</em> de James Clear.</p>
+      </div>
+
+      <div class="onboard-steps">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">¿Cómo funciona?</p>
+
+        <div class="onboard-step">
+          <div class="step-icon-box g">🎯</div>
+          <div class="step-text">
+            <h3>Intención de Implementación</h3>
+            <p>Dile a tu cerebro exactamente <strong>qué harás, cuándo y dónde</strong>. Los estudios muestran que esto duplica las posibilidades de cumplir un hábito.</p>
+          </div>
+        </div>
+
+        <div class="onboard-step">
+          <div class="step-icon-box a">⚡</div>
+          <div class="step-text">
+            <h3>Regla de los 2 Minutos</h3>
+            <p>El obstáculo más grande es <strong>empezar</strong>. Define una versión tan fácil de tu hábito que sea imposible no hacerla.</p>
+          </div>
+        </div>
+
+        <div class="onboard-step">
+          <div class="step-icon-box p">🎁</div>
+          <div class="step-text">
+            <h3>Acumulación de Tentaciones</h3>
+            <p>Combina tu nuevo hábito con algo que ya <strong>disfrutas</strong>. Así tu cerebro lo asociará con placer desde el primer día.</p>
+          </div>
+        </div>
+
+        <div class="onboard-step">
+          <div class="step-icon-box" style="background:var(--cream)">📅</div>
+          <div class="step-text">
+            <h3>Historial Visual</h3>
+            <p>Registra cada día que cumples. Ver la racha crecer es una <strong>motivación poderosa</strong> para no romperla.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="onboard-footer">
+        <button class="fab" onclick="showScreen('dashboard')">
+          <span>¡Empezar ahora!</span> <span>→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <div class="screen" id="screen-dashboard">
+    <div class="app-header" style="padding-right: 80px;">
+      <div class="label">Habit Architect</div>
+      <h1 id="header-title">HOY</h1>
+      <div class="date" id="header-date"></div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="showScreen('history')" title="Historial">📅</button>
+    </div>
+
+    <div class="habits-list" id="habits-list"></div>
+
+    <div class="fab-container">
+      <button class="fab" onclick="startWizard()">
+        <span style="font-size:18px">＋</span>
+        <span>Diseñar nuevo hábito</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════ WIZARD ══════════ -->
+  <div class="screen" id="screen-wizard">
+    <div class="wizard-header">
+      <div class="step-num" id="wizard-step-label">Paso 1 de 3</div>
+      <div class="progress-bar" id="wizard-progress"></div>
+    </div>
+
+    <div class="wizard-container" id="wizard-content"></div>
+
+    <div class="wizard-footer" id="wizard-footer"></div>
+  </div>
+
+  <!-- ══════════ HISTORY ══════════ -->
+  <div class="screen" id="screen-history">
+    <div class="history-header">
+      <div style="font-family:'Fraunces',serif;font-size:32px;font-weight:900;">Tu Progreso</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">Historial mensual de hábitos</div>
+    </div>
+    <div class="history-container" id="history-content"></div>
+    <div class="fab-container">
+      <button class="fab" onclick="showScreen('dashboard')" style="background:var(--ink)">
+        ← Volver al inicio
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════
+//  STATE
+// ════════════════════════════════
+let habits = JSON.parse(localStorage.getItem('habitArchitect_v2') || '[]');
+let wizardStep = 1;
+let editingHabit = null;
+
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONTH_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function saveHabits() {
+  localStorage.setItem('habitArchitect_v2', JSON.stringify(habits));
+}
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+}
+
+// ════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + name);
+  target.classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'history') renderHistory();
+}
+
+// ════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════
+function renderDashboard() {
+  const today = getToday();
+  const now = new Date();
+  document.getElementById('header-date').textContent = formatDate(now);
+
+  const list = document.getElementById('habits-list');
+
+  if (habits.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🌱</div>
+        <p>No tienes hábitos aún.<br>¡Crea el primero pulsando el botón de abajo!</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = habits.map(h => {
+    const done = (h.completedDates || []).includes(today);
+    const twoMin = h.twoMinuteVersion || h.twoMin || '';
+    const reward = h.reward || '';
+    return `
+      <div class="habit-card ${done ? 'done' : ''}" id="card-${h.id}">
+        <div class="habit-card-top">
+          <div style="flex:1">
+            <div class="habit-name">${escHtml(h.behavior)}</div>
+            <div class="habit-meta">
+              ${h.time ? '🕐 ' + h.time : ''}
+              ${h.time && h.place ? ' · ' : ''}
+              ${h.place ? '📍 ' + escHtml(h.place) : ''}
+            </div>
+            ${reward && !done ? `<div style="margin-top:6px;font-size:12px;color:var(--plum);">🎁 Recompensa: ${escHtml(reward)}</div>` : ''}
+          </div>
+          <button class="check-btn" onclick="toggleHabit('${h.id}')">
+            ${done ? '✓' : '○'}
+          </button>
+        </div>
+        ${twoMin && !done ? `
+          <div class="two-min-tip">
+            <span>⚡</span>
+            <div><strong>¿Día difícil?</strong> Solo haz: ${escHtml(twoMin)}</div>
+          </div>` : ''}
+        <div class="habit-actions">
+          <button class="delete-btn" onclick="deleteHabit('${h.id}')">🗑 Eliminar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleHabit(id) {
+  const today = getToday();
+  habits = habits.map(h => {
+    if (h.id !== id) return h;
+    const dates = h.completedDates || [];
+    const done = dates.includes(today);
+    return { ...h, completedDates: done ? dates.filter(d => d !== today) : [...dates, today] };
+  });
+  saveHabits();
+  renderDashboard();
+}
+
+function deleteHabit(id) {
+  if (!confirm('¿Eliminar este hábito?')) return;
+  habits = habits.filter(h => h.id !== id);
+  saveHabits();
+  renderDashboard();
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════
+//  WIZARD
+// ════════════════════════════════
+let draftHabit = { behavior:'', time:'', place:'', twoMinuteVersion:'', reward:'' };
+
+function startWizard() {
+  draftHabit = { behavior:'', time:'', place:'', twoMinuteVersion:'', reward:'' };
+  wizardStep = 1;
+  showScreen('wizard');
+  renderWizardStep();
+}
+
+function renderWizardStep() {
+  // Progress
+  document.getElementById('wizard-step-label').textContent = `Paso ${wizardStep} de 3`;
+  let prog = '';
+  for (let i=1; i<=3; i++) prog += `<div class="progress-segment ${i <= wizardStep ? 'filled' : ''}"></div>`;
+  document.getElementById('wizard-progress').innerHTML = prog;
+
+  // Content
+  const content = document.getElementById('wizard-content');
+  if (wizardStep === 1) {
+    content.innerHTML = `
+      <div class="explainer green">
+        <div class="explainer-title">🎯 ¿Qué es la Intención de Implementación?</div>
+        <div class="explainer-body">
+          Es como un <strong>contrato contigo mismo</strong>. En vez de decir "voy a hacer ejercicio", le dices a tu cerebro exactamente <strong>qué harás, a qué hora y en qué lugar</strong>.<br><br>
+          Los científicos descubrieron que las personas que usan esta técnica tienen <strong>el doble de probabilidades</strong> de cumplir sus metas.
+        </div>
+        <div class="explainer-example">
+          💡 En vez de: "Voy a leer más"<br>
+          ✅ Mejor: "Leeré 20 páginas, a las 9pm, en mi sillón"
+        </div>
+        <div class="explainer-tip">👇 Ahora completa tu propio plan:</div>
+      </div>
+
+      <div class="template-box">
+        <div class="template-line">
+          <span class="template-key">Haré</span>
+          <input class="field-input" id="f-behavior" placeholder="Ej: leer un capítulo, salir a caminar…" value="${escHtml(draftHabit.behavior)}" style="flex:1;margin:0;">
+        </div>
+        <div class="template-line" style="margin-top:10px;">
+          <span class="template-key">A las</span>
+          <input type="time" class="field-input" id="f-time" value="${draftHabit.time}" style="flex:1;margin:0;">
+        </div>
+        <div class="template-line" style="margin-top:10px;">
+          <span class="template-key">En</span>
+          <input class="field-input" id="f-place" placeholder="Ej: mi cuarto, el parque, la cocina…" value="${escHtml(draftHabit.place)}" style="flex:1;margin:0;">
+        </div>
+      </div>`;
+  }
+
+  else if (wizardStep === 2) {
+    content.innerHTML = `
+      <div class="explainer amber">
+        <div class="explainer-title">⚡ ¿Qué es la Regla de los 2 Minutos?</div>
+        <div class="explainer-body">
+          Cuando no tenemos ganas, el cerebro busca excusas para no empezar. La solución es hacer el hábito <strong>tan pequeño que sea imposible negarse</strong>.<br><br>
+          La regla dice: <strong>"Si parece difícil, hazlo ridículamente fácil"</strong>. Una vez que empiezas, suele ser fácil continuar.
+        </div>
+        <div class="explainer-example">
+          💡 Hábito normal: "Ir al gimnasio 1 hora"<br>
+          ⚡ Versión 2 min: "Ponerme la ropa deportiva"<br><br>
+          💡 Hábito normal: "Meditar 20 minutos"<br>
+          ⚡ Versión 2 min: "Sentarme y respirar 3 veces"
+        </div>
+        <div class="explainer-tip">👇 ¿Cuál es tu versión súper fácil?</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">La versión de 2 minutos de mi hábito es…</label>
+        <textarea class="field-textarea" id="f-twomin" placeholder="Ej: Solo abriré el libro y leeré UNA frase. Solo saldré a la puerta de casa. Solo haré UNA flexión.">${escHtml(draftHabit.twoMinuteVersion)}</textarea>
+      </div>
+
+      <div style="padding:12px 14px;background:var(--cream);border-radius:14px;font-size:13px;color:var(--muted);line-height:1.6;">
+        💬 <strong>Recuerda:</strong> La meta no es hacer la versión mínima para siempre. Es <em>arrancar el motor</em> los días difíciles. Una vez que empiezas, ¡casi siempre terminas haciendo más!
+      </div>`;
+  }
+
+  else if (wizardStep === 3) {
+    content.innerHTML = `
+      <div class="explainer plum">
+        <div class="explainer-title">🎁 ¿Qué es la Acumulación de Tentaciones?</div>
+        <div class="explainer-body">
+          Es un truco poderoso: <strong>une algo que debes hacer con algo que adoras hacer</strong>. Tu cerebro empieza a asociar el hábito nuevo con placer, así es más probable que lo hagas con gusto.<br><br>
+          La fórmula es: <strong>"Solo podré [cosa favorita] mientras o después de hacer [mi nuevo hábito]"</strong>.
+        </div>
+        <div class="explainer-example">
+          🎧 Solo escucharé mi podcast favorito mientras camino<br>
+          ☕ Solo tomaré café mientras medito<br>
+          📱 Solo veré redes sociales después de leer 20 minutos
+        </div>
+        <div class="explainer-tip">👇 Define tu recompensa:</div>
+      </div>
+
+      <div class="template-box">
+        <div style="font-size:14px;color:var(--muted);margin-bottom:8px;font-style:italic;">"Solo podré…"</div>
+        <input class="field-input" id="f-reward" placeholder="Ej: ver Netflix, escuchar música, revisar el teléfono…" value="${escHtml(draftHabit.reward)}" style="margin-bottom:12px;">
+        <div style="font-size:14px;color:var(--muted);font-style:italic;">"…mientras o después de hacer mi nuevo hábito."</div>
+      </div>
+
+      <div style="padding:12px 14px;background:var(--cream);border-radius:14px;font-size:13px;color:var(--muted);line-height:1.6;">
+        ✅ <strong>Opcional pero recomendado.</strong> Si ahora no se te ocurre nada, puedes dejarlo en blanco y agregar una recompensa después.
+      </div>`;
+  }
+
+  // Footer
+  const footer = document.getElementById('wizard-footer');
+  footer.innerHTML = `
+    ${wizardStep > 1 ? `<button class="btn-back" onclick="wizardBack()">← Atrás</button>` : `<button class="btn-back" onclick="showScreen('dashboard')">✕ Cancelar</button>`}
+    <button class="btn-next ${wizardStep === 3 ? 'sage' : ''}" onclick="wizardNext()">
+      ${wizardStep < 3 ? 'Siguiente →' : '✓ Crear hábito'}
+    </button>`;
+}
+
+function wizardCollect() {
+  if (wizardStep === 1) {
+    draftHabit.behavior = (document.getElementById('f-behavior')?.value || '').trim();
+    draftHabit.time = document.getElementById('f-time')?.value || '';
+    draftHabit.place = (document.getElementById('f-place')?.value || '').trim();
+  } else if (wizardStep === 2) {
+    draftHabit.twoMinuteVersion = (document.getElementById('f-twomin')?.value || '').trim();
+  } else if (wizardStep === 3) {
+    draftHabit.reward = (document.getElementById('f-reward')?.value || '').trim();
+  }
+}
+
+function wizardNext() {
+  wizardCollect();
+  if (wizardStep === 1 && !draftHabit.behavior) {
+    alert('Por favor escribe el comportamiento que quieres practicar.');
+    return;
+  }
+  if (wizardStep < 3) {
+    wizardStep++;
+    renderWizardStep();
+  } else {
+    // Save
+    const habit = {
+      id: Date.now().toString(),
+      behavior: draftHabit.behavior,
+      time: draftHabit.time,
+      place: draftHabit.place,
+      twoMinuteVersion: draftHabit.twoMinuteVersion,
+      reward: draftHabit.reward,
+      completedDates: [],
+      createdAt: getToday()
+    };
+    habits.push(habit);
+    saveHabits();
+    showScreen('dashboard');
+  }
+}
+
+function wizardBack() {
+  wizardCollect();
+  if (wizardStep > 1) { wizardStep--; renderWizardStep(); }
+}
+
+// ════════════════════════════════
+//  HISTORY
+// ════════════════════════════════
+function renderHistory() {
+  const container = document.getElementById('history-content');
+  const today = getToday();
+  const now = new Date();
+
+  if (habits.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><p>Aún no tienes hábitos.<br>¡Crea el primero!</p></div>`;
+    return;
+  }
+
+  container.innerHTML = habits.map(h => {
+    const dates = h.completedDates || [];
+
+    // Build 3 months of data (current + 2 previous)
+    let monthsHtml = '';
+    for (let mOffset = -2; mOffset <= 0; mOffset++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + mOffset, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = today;
+
+      let cells = '';
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const isDone = dates.includes(dateStr);
+        const isToday = dateStr === todayStr;
+        cells += `<div class="day-cell ${isDone?'done':''} ${isToday&&!isDone?'today':''}" title="${dateStr}">${day}</div>`;
+      }
+      monthsHtml += `
+        <div class="month-label">${MONTH_FULL[month]} ${year}</div>
+        <div class="day-grid">${cells}</div>`;
+    }
+
+    // Streak calc
+    const streak = calcStreak(dates, today);
+    const total = dates.length;
+
+    return `
+      <div class="habit-history-block">
+        <div class="habit-history-name">${escHtml(h.behavior)}</div>
+        <div class="streak-info">
+          <div class="streak-pill fire">🔥 ${streak} día${streak!==1?'s':''} seguido${streak!==1?'s':''}</div>
+          <div class="streak-pill check">✓ ${total} total${total!==1?'es':''}</div>
+        </div>
+        <div style="margin-top:16px">${monthsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function calcStreak(dates, today) {
+  if (!dates || !dates.includes(today)) return 0;
+  let streak = 0;
+  let d = new Date(today);
+  while (true) {
+    const s = d.toISOString().split('T')[0];
+    if (dates.includes(s)) { streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+
+// ════════════════════════════════
+//  INIT
+// ════════════════════════════════
+renderDashboard();
+</script>
+</body>
+</html>
